@@ -91,13 +91,19 @@ func (k *fileKeyring) Get(key string) (Item, error) {
 		return Item{}, err
 	}
 
-	if err = k.unlock(); err != nil {
-		return Item{}, err
-	}
-
 	payload, _, err := jose.Decode(string(bytes), k.password)
 	if err != nil {
-		return Item{}, err
+		if k.password == "" { // try again after unlocking
+			if err = k.unlock(); err != nil {
+				return Item{}, err
+			}
+			payload, _, err = jose.Decode(string(bytes), k.password)
+			if err != nil {
+				return Item{}, err
+			}
+		} else {
+			return Item{}, err
+		}
 	}
 
 	var decoded Item
