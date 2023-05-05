@@ -7,6 +7,9 @@
 VERSION := $(shell git describe --tags --always --dirty="-dev")
 LDFLAGS := -ldflags='-X "main.Version=$(VERSION)"'
 
+dist/aws-okta: | dist/
+	GO111MODULE=on go build -mod=vendor $(LDFLAGS) -o dist/aws-okta
+
 test:
 	GO111MODULE=on go test -mod=vendor -v ./...
 
