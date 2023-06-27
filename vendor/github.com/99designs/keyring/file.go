@@ -143,16 +143,22 @@ func (k *fileKeyring) Set(i Item) error {
 		return err
 	}
 
-	if err = k.unlock(); err != nil {
-		return err
-	}
-
-	token, err := jose.Encrypt(string(bytes), jose.PBES2_HS256_A128KW, jose.A256GCM, k.password,
-		jose.Headers(map[string]interface{}{
-			"created": time.Now().String(),
-		}))
+	key := jose.Headers(map[string]interface{}{
+		"created": time.Now().String(),
+	})
+	token, err := jose.Encrypt(string(bytes), jose.PBES2_HS256_A128KW, jose.A256GCM, k.password, key)
 	if err != nil {
-		return err
+		if k.password == "" { // try again after unlocking
+			if err = k.unlock(); err != nil {
+				return err
+			}
+			token, err = jose.Encrypt(string(bytes), jose.PBES2_HS256_A128KW, jose.A256GCM, k.password, key)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	filename, err := k.filename(i.Key)
